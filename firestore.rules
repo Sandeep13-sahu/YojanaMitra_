@@ -1,0 +1,261 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- Role-Based Access Control Helpers ---
+
+    function hasRoleDoc() {
+      return isSignedIn() && exists(/databases/$(database)/documents/user_roles/$(request.auth.uid));
+    }
+
+    function getRoleDoc() {
+      return get(/databases/$(database)/documents/user_roles/$(request.auth.uid)).data;
+    }
+
+    function isSuperAdmin() {
+      return hasRoleDoc() &&
+             getRoleDoc().role == 'SUPER_ADMIN' &&
+             getRoleDoc().status == 'ACTIVE';
+    }
+
+    function isOperator() {
+      return hasRoleDoc() &&
+             getRoleDoc().role == 'OPERATOR' &&
+             getRoleDoc().status == 'ACTIVE';
+    }
+
+    function getOperatorPanchayat() {
+      return getRoleDoc().jurisdictionPanchayat;
+    }
+
+    function getOperatorDistrict() {
+      return getRoleDoc().jurisdictionDistrict;
+    }
+
+    // --- Validation Helpers ---
+
+    function isValidCitizenProfile(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 100 &&
+             (!('phoneNumber' in data) || data.phoneNumber == null || (data.phoneNumber is string && data.phoneNumber.size() <= 20)) &&
+             (!('preferredLanguage' in data) || data.preferredLanguage == null || (data.preferredLanguage is string && data.preferredLanguage.size() <= 10)) &&
+             (!('state' in data) || data.state == null || (data.state is string && data.state.size() <= 50)) &&
+             (!('district' in data) || data.district == null || (data.district is string && data.district.size() <= 50)) &&
+             (!('block' in data) || data.block == null || (data.block is string && data.block.size() <= 50)) &&
+             (!('panchayat' in data) || data.panchayat == null || (data.panchayat is string && data.panchayat.size() <= 50)) &&
+             (!('village' in data) || data.village == null || (data.village is string && data.village.size() <= 50)) &&
+             (!('age' in data) || data.age == null || (data.age is int && data.age >= 0 && data.age <= 130)) &&
+             (!('gender' in data) || data.gender == null || (data.gender is string && data.gender.size() <= 20)) &&
+             (!('occupation' in data) || data.occupation == null || (data.occupation is string && data.occupation.size() <= 50)) &&
+             (!('landholdingAcres' in data) || data.landholdingAcres == null || (data.landholdingAcres is number && data.landholdingAcres >= 0)) &&
+             (!('householdIncome' in data) || data.householdIncome == null || (data.householdIncome is int && data.householdIncome >= 0)) &&
+             (!('category' in data) || data.category == null || (data.category is string && data.category.size() <= 20)) &&
+             (!('hasDisability' in data) || data.hasDisability == null || data.hasDisability is bool) &&
+             (!('hasBplRationCard' in data) || data.hasBplRationCard == null || data.hasBplRationCard is bool) &&
+             data.consentGiven is bool &&
+             (!('operatorId' in data) || data.operatorId == null || (data.operatorId is string && data.operatorId.size() <= 128)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidScheme(data) {
+      return data.schemeName is string && data.schemeName.size() >= 2 && data.schemeName.size() <= 150 &&
+             data.schemeNameHindi is string && data.schemeNameHindi.size() >= 2 && data.schemeNameHindi.size() <= 150 &&
+             data.category is string && data.category.size() <= 50 &&
+             data.department is string && data.department.size() <= 100 &&
+             (!('governmentLevel' in data) || data.governmentLevel == null || (data.governmentLevel is string && data.governmentLevel.size() <= 50)) &&
+             (!('applicableState' in data) || data.applicableState == null || (data.applicableState is string && data.applicableState.size() <= 50)) &&
+             (!('shortDescription' in data) || data.shortDescription == null || (data.shortDescription is string && data.shortDescription.size() <= 1000)) &&
+             (!('shortDescriptionHindi' in data) || data.shortDescriptionHindi == null || (data.shortDescriptionHindi is string && data.shortDescriptionHindi.size() <= 1000)) &&
+             (!('benefitSummary' in data) || data.benefitSummary == null || (data.benefitSummary is string && data.benefitSummary.size() <= 1000)) &&
+             (!('benefitSummaryHindi' in data) || data.benefitSummaryHindi == null || (data.benefitSummaryHindi is string && data.benefitSummaryHindi.size() <= 1000)) &&
+             (!('officialLink' in data) || data.officialLink == null || (data.officialLink is string && data.officialLink.size() <= 300)) &&
+             (!('sourceReference' in data) || data.sourceReference == null || (data.sourceReference is string && data.sourceReference.size() <= 300)) &&
+             (!('lastVerifiedDate' in data) || data.lastVerifiedDate == null || (data.lastVerifiedDate is string && data.lastVerifiedDate.size() <= 50)) &&
+             (!('version' in data) || data.version == null || data.version is int) &&
+             data.isPublished is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidApplicationCase(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.schemeId is string && data.schemeId.size() > 0 && data.schemeId.size() <= 128 &&
+             data.schemeName is string && data.schemeName.size() > 0 && data.schemeName.size() <= 150 &&
+             (!('citizenName' in data) || data.citizenName == null || (data.citizenName is string && data.citizenName.size() <= 100)) &&
+             (!('referenceNumber' in data) || data.referenceNumber == null || (data.referenceNumber is string && data.referenceNumber.size() <= 100)) &&
+             (!('submissionDate' in data) || data.submissionDate == null || (data.submissionDate is string && data.submissionDate.size() <= 50)) &&
+             (!('channel' in data) || data.channel == null || (data.channel is string && data.channel.size() <= 50)) &&
+             data.status is string && data.status.size() <= 50 &&
+             (!('statusSource' in data) || data.statusSource == null || (data.statusSource is string && data.statusSource.size() <= 50)) &&
+             (!('operatorNotes' in data) || data.operatorNotes == null || (data.operatorNotes is string && data.operatorNotes.size() <= 1000)) &&
+             (!('panchayat' in data) || data.panchayat == null || (data.panchayat is string && data.panchayat.size() <= 50)) &&
+             (!('district' in data) || data.district == null || (data.district is string && data.district.size() <= 50)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidServiceCentre(data) {
+      return data.name is string && data.name.size() >= 2 && data.name.size() <= 150 &&
+             data.type is string && data.type.size() <= 50 &&
+             data.address is string && data.address.size() <= 300 &&
+             data.district is string && data.district.size() <= 50 &&
+             (!('block' in data) || data.block == null || (data.block is string && data.block.size() <= 50)) &&
+             (!('panchayat' in data) || data.panchayat == null || (data.panchayat is string && data.panchayat.size() <= 50)) &&
+             (!('contactPhone' in data) || data.contactPhone == null || (data.contactPhone is string && data.contactPhone.size() <= 50)) &&
+             (!('openingHours' in data) || data.openingHours == null || (data.openingHours is string && data.openingHours.size() <= 100)) &&
+             (!('distanceKm' in data) || data.distanceKm == null || data.distanceKm is number) &&
+             data.isVerified is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidSavedScheme(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.schemeId is string && data.schemeId.size() > 0 && data.schemeId.size() <= 128 &&
+             data.schemeName is string && data.schemeName.size() > 0 && data.schemeName.size() <= 150 &&
+             (!('category' in data) || data.category == null || (data.category is string && data.category.size() <= 50)) &&
+             data.savedAt is timestamp && data.savedAt <= request.time;
+    }
+
+    function isValidUserRole(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.role in ['CITIZEN', 'OPERATOR', 'SUPER_ADMIN'] &&
+             data.status in ['ACTIVE', 'SUSPENDED', 'DEACTIVATED'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidAuditLog(data) {
+      return data.actorId is string && data.actorId.size() > 0 &&
+             data.actorRole is string && data.actorRole.size() > 0 &&
+             data.action is string && data.action.size() > 0 &&
+             data.timestamp is timestamp && data.timestamp <= request.time;
+    }
+
+    // --- Collections ---
+
+    // 1. Authoritative User Roles (RBAC Gateway)
+    match /user_roles/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow list: if isSuperAdmin();
+      allow create, update, delete: if isSuperAdmin() && isValidId(userId) && isValidUserRole(incoming());
+    }
+
+    // 2. Operator Accounts (Managed exclusively by Super Admin)
+    match /operator_accounts/{operatorId} {
+      allow get: if isSignedIn() && (request.auth.uid == operatorId || isSuperAdmin());
+      allow list: if isSuperAdmin();
+      allow create, update, delete: if isSuperAdmin() && isValidId(operatorId);
+    }
+
+    // 3. Citizen Profiles
+    match /citizen_profiles/{profileId} {
+      allow get, list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isSuperAdmin() ||
+        (isOperator() && resource.data.panchayat == getOperatorPanchayat())
+      );
+
+      allow create: if isSignedIn() &&
+                       isValidId(profileId) &&
+                       isValidCitizenProfile(incoming()) &&
+                       (incoming().userId == request.auth.uid || (isOperator() && incoming().panchayat == getOperatorPanchayat()));
+
+      allow update: if isSignedIn() &&
+                       isValidId(profileId) &&
+                       isValidCitizenProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (existing().userId == request.auth.uid || isSuperAdmin() || (isOperator() && existing().panchayat == getOperatorPanchayat()));
+
+      allow delete: if isSignedIn() && isValidId(profileId) && (existing().userId == request.auth.uid || isSuperAdmin());
+    }
+
+    // 4. Schemes Catalogue (Public read, Super Admin write)
+    match /schemes/{schemeId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSuperAdmin() && isValidId(schemeId) && isValidScheme(incoming());
+      allow update: if isSuperAdmin() && isValidId(schemeId) && isValidScheme(incoming()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isSuperAdmin() && isValidId(schemeId);
+    }
+
+    // 5. Application Cases (Citizen personal isolation + Operator Jurisdiction Isolation)
+    match /application_cases/{caseId} {
+      allow get, list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isSuperAdmin() ||
+        (isOperator() && ('panchayat' in resource.data) && resource.data.panchayat == getOperatorPanchayat())
+      );
+
+      allow create: if isSignedIn() &&
+                       isValidId(caseId) &&
+                       isValidApplicationCase(incoming()) &&
+                       (incoming().userId == request.auth.uid || (isOperator() && incoming().panchayat == getOperatorPanchayat()));
+
+      allow update: if isSignedIn() &&
+                       isValidId(caseId) &&
+                       isValidApplicationCase(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (existing().userId == request.auth.uid || isSuperAdmin() || (isOperator() && existing().panchayat == getOperatorPanchayat()));
+
+      allow delete: if isSignedIn() && isValidId(caseId) && (existing().userId == request.auth.uid || isSuperAdmin());
+    }
+
+    // 6. Service Centres
+    match /service_centres/{centreId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSuperAdmin() && isValidId(centreId);
+    }
+
+    // 7. Saved Schemes
+    match /saved_schemes/{savedId} {
+      allow get, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() &&
+                       isValidId(savedId) &&
+                       isValidSavedScheme(incoming()) &&
+                       incoming().userId == request.auth.uid;
+      allow delete: if isSignedIn() && isValidId(savedId) && existing().userId == request.auth.uid;
+    }
+
+    // 8. Security Audit Logs (Append-only by staff, read only by Super Admin)
+    match /audit_logs/{logId} {
+      allow get, list: if isSuperAdmin();
+      allow create: if (isSuperAdmin() || isOperator()) && isValidId(logId) && isValidAuditLog(incoming());
+      allow update, delete: if false; // Immutable audit logs
+    }
+
+    // 9. Government Sources Registry (Public read, Super Admin manage)
+    match /government_sources/{sourceId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSuperAdmin() && isValidId(sourceId);
+    }
+
+    // 10. Discovered Announcements & Intelligence Feed (Public read for verified, Super Admin manage)
+    match /discovered_announcements/{announcementId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSuperAdmin() && isValidId(announcementId);
+    }
+  }
+}

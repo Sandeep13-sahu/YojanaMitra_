@@ -1,0 +1,6 @@
+{
+  "name": "YojanaMitra",
+  "description": "Voice-First Government Scheme Eligibility Navigator for citizens and rural Panchayats",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

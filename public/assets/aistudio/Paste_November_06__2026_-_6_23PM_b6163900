@@ -1,0 +1,1010 @@
+# MASTER BUILD PROMPT
+## YOJANAMITRA – आपका सरकारी योजना साथी
+### Voice-First Government Scheme Eligibility Navigator
+
+Act as a world-class product architect, senior full-stack engineer, AI/ML engineer, UI/UX designer, database architect, cybersecurity specialist, and government digital-services consultant.
+
+Your task is to DESIGN, DEVELOP, TEST, and DELIVER a complete, production-oriented application named **YojanaMitra – आपका सरकारी योजना साथी**.
+
+Do not create only a landing page, static dashboard, presentation prototype, or UI mockup. Build a genuinely functional, responsive, database-driven application with working authentication, citizen workflows, scheme discovery, eligibility assessment, document checklists, Panchayat operator functionality, and Super Admin management.
+
+Think like a team building a real public-service technology platform for rural India.
+
+---
+
+# 1. PRODUCT VISION
+
+YojanaMitra is a voice-first government scheme discovery and eligibility guidance platform.
+
+Its purpose is to help citizens, especially rural and underserved communities, discover government welfare schemes they may qualify for, understand eligibility requirements, prepare necessary documents, locate nearby application centres, and track their applications where reliable status information is available.
+
+The platform must support citizens who:
+- Do not know which government schemes are available.
+- Have difficulty understanding official government websites.
+- Cannot easily read complex government documentation.
+- Prefer speaking in Hindi or their regional language.
+- Do not know which documents are required.
+- Need assistance from Panchayat-level operators.
+- Have limited internet connectivity or digital literacy.
+
+**Core principle:**
+
+AI understands the citizen. A deterministic, verified eligibility engine evaluates scheme conditions. Official government sources remain the authority.
+
+Never guarantee scheme approval or invent eligibility conditions.
+
+---
+
+# 2. PRODUCT NAME AND BRAND IDENTITY
+
+Product: YojanaMitra
+
+Hindi tagline: आपका सरकारी योजना साथी
+
+Brand personality:
+- Trustworthy
+- Citizen-friendly
+- Accessible
+- Modern
+- Transparent
+- Simple
+- Government-service oriented
+
+Create a distinctive, professional identity with:
+- A modern logo combining a helping hand, people/community, and a subtle government-service or trust symbol.
+- Consistent branding throughout the application.
+- A clean white/off-white visual foundation.
+- Emerald and deep-green accents.
+- Soft neutral backgrounds.
+- Premium typography.
+- Elegant cards, icons, subtle shadows and rounded corners.
+
+Suggested palette:
+- Primary green: #176B4D
+- Deep green: #123F30
+- Secondary green: #2D956A
+- Background: #F6F9F7
+- Surface: #FFFFFF
+- Main text: #18352B
+- Secondary text: #66756D
+- Borders: #E0EAE4
+- Warning: #D99A32
+- Error: #C74747
+
+Avoid excessive blue, neon gradients, oversized illustrations, cluttered dashboards, unnecessary animations, and generic AI-generated landing-page layouts.
+
+The design must feel like a real, premium, trustworthy public-service application.
+
+---
+
+# 3. APPLICATION PLATFORMS
+
+Build three interconnected interfaces.
+
+### A. Citizen Android Application
+Primary interface for rural citizens.
+
+Core capabilities:
+- Registration and login.
+- Language selection.
+- Voice assistant.
+- Citizen profile.
+- Scheme discovery.
+- Eligibility assessment.
+- Recommended schemes.
+- Document checklist.
+- Nearby application centres.
+- Saved schemes.
+- Application tracking.
+- Notifications.
+- Profile and consent management.
+
+### B. Panchayat Operator Web Dashboard
+For authorised Panchayat-level operators.
+
+Core capabilities:
+- Operator authentication.
+- Citizen registration assistance.
+- Consent-based citizen profile creation.
+- Scheme discovery on behalf of citizens.
+- Eligibility assessment.
+- Document checklist generation.
+- Application assistance.
+- Case management.
+- Follow-up reminders.
+- Citizen service history.
+- Local operational reports.
+
+### C. Super Admin Web Portal
+For platform administrators.
+
+This must be a separate, protected administrative interface.
+
+Core capabilities:
+- Scheme management.
+- Eligibility rule management.
+- Source verification.
+- Scheme publication approval.
+- User management.
+- Operator management.
+- Panchayat and district management.
+- Application/case monitoring.
+- Audit logs.
+- Analytics.
+- System configuration.
+
+Do not expose Super Admin registration or administrative controls on the normal citizen-facing interface.
+
+---
+
+# 4. USER ROLES AND ACCESS CONTROL
+
+Implement the following roles:
+
+1. CITIZEN
+2. PANCHAYAT_OPERATOR
+3. BLOCK_SUPERVISOR
+4. SCHEME_DATA_EDITOR
+5. SUPER_ADMIN
+
+Enforce role-based permissions on both frontend and backend.
+
+Rules:
+- Citizens can access only their own profiles, consent records, saved schemes and cases.
+- Operators can access only their authorised service areas and permitted citizen records.
+- Supervisors can monitor their assigned areas.
+- Scheme editors can create and edit draft scheme records.
+- Only authorised administrators can approve and publish scheme records.
+- Super Admin has platform-level management permissions.
+- All privileged actions must be audited.
+
+Never rely exclusively on frontend role checks. Enforce authorisation on backend APIs.
+
+---
+
+# 5. CITIZEN REGISTRATION AND PROFILE
+
+Create a simple, accessible registration process.
+
+Profile information should be collected progressively, not through one overwhelming form.
+
+Possible fields:
+- Full name.
+- Mobile number.
+- Preferred language.
+- State.
+- District.
+- Block.
+- Panchayat.
+- Village.
+- Age/date of birth, when relevant.
+- Gender, only when relevant to scheme criteria.
+- Occupation.
+- Farmer/business/worker/student status.
+- Household income range.
+- Landholding details, when relevant.
+- Household information, when relevant.
+- Disability-related information, only when necessary and with appropriate consent.
+
+Important:
+- Collect only necessary information.
+- Explain why a field is requested.
+- Allow users to skip optional questions.
+- Allow correction of profile details.
+- Provide explicit consent before processing personal information.
+- Do not collect Aadhaar, bank passwords, OTPs or unnecessary sensitive information.
+
+Create an attractive profile screen with edit functionality.
+
+---
+
+# 6. MULTILINGUAL VOICE ASSISTANT
+
+This is one of the most important features.
+
+Build a voice-first assistant called:
+
+**YojanaMitra AI – आपकी सहायता के लिए हमेशा तैयार**
+
+Initial language priorities:
+1. Hindi
+2. English
+3. Bhojpuri
+4. Maithili
+
+Additional languages should be supported through a configurable language system.
+
+The voice assistant should support:
+- Speech-to-text.
+- Text-to-speech.
+- Language selection.
+- Voice input.
+- Text input.
+- Audio playback.
+- Repeat response.
+- Slow playback.
+- Voice recognition correction.
+- Context-aware follow-up questions.
+
+Example:
+
+Citizen:
+"मुझे खेती के लिए सरकारी सहायता चाहिए।"
+
+Assistant:
+"बिल्कुल! मैं आपकी सहायता करूंगा। क्या आपके पास खेती की जमीन है?"
+
+Citizen:
+"हाँ, मेरे पास एक एकड़ जमीन है।"
+
+Assistant:
+"आप किस राज्य और जिले में रहते हैं?"
+
+After collecting the necessary details, the assistant should search relevant schemes and explain potential eligibility.
+
+The assistant must:
+- Use simple everyday language.
+- Avoid long technical explanations.
+- Ask one question at a time.
+- Never assume missing profile details.
+- Never fabricate scheme information.
+- Clearly distinguish between verified facts and uncertain information.
+
+If voice services are unavailable, provide a fully working text-based fallback.
+
+Use Google-supported speech and AI services where appropriate. Keep AI provider integrations modular so they can be replaced later.
+
+---
+
+# 7. GOVERNMENT SCHEME DISCOVERY ENGINE
+
+Create a centralised, searchable scheme database.
+
+Organise schemes by:
+
+- Central Government.
+- State Government.
+- Bihar Government.
+- Agriculture.
+- Education.
+- Healthcare.
+- Housing.
+- Employment.
+- Women and Child Welfare.
+- Pension.
+- Social Security.
+- Financial Assistance.
+- Entrepreneurship.
+- Rural Development.
+- Disability Support.
+- Other welfare categories.
+
+Each scheme must have:
+
+1. Official scheme name.
+2. Simple-language description.
+3. Responsible department.
+4. Government level.
+5. Applicable state/district.
+6. Eligibility requirements.
+7. Exclusion conditions.
+8. Benefits.
+9. Required documents.
+10. Application process.
+11. Official application link.
+12. Official source reference.
+13. Effective date.
+14. Last verified date.
+15. Version number.
+16. Publication status.
+
+Create realistic sample data only for development and testing.
+
+Clearly label unverified sample records as DEMO DATA. Never present invented schemes or eligibility conditions as official government information.
+
+---
+
+# 8. INTELLIGENT ELIGIBILITY ENGINE
+
+Build a deterministic eligibility engine.
+
+Do not let the LLM independently decide eligibility.
+
+Workflow:
+
+1. Retrieve the citizen's consented profile attributes.
+2. Identify relevant schemes.
+3. Load the currently effective, approved eligibility rules.
+4. Evaluate every required condition.
+5. Identify satisfied criteria.
+6. Identify failed criteria.
+7. Identify missing information.
+8. Generate an explainable result.
+9. Show the official source and rule version.
+
+Use three result states:
+
+**POTENTIALLY ELIGIBLE**
+The known information appears to satisfy the configured criteria.
+
+**MORE INFORMATION NEEDED**
+Some required information is missing or cannot be verified.
+
+**CRITERIA NOT MET**
+One or more mandatory criteria are not satisfied.
+
+Every result must display:
+- Why the scheme was recommended.
+- Which criteria were satisfied.
+- Which criteria were not satisfied.
+- What additional information is needed.
+- Required documents.
+- Official source.
+- Last verification date.
+
+Example:
+
+Scheme: Illustrative Agriculture Support Scheme
+
+Eligibility:
+- State requirement: Satisfied.
+- Occupation requirement: Satisfied.
+- Landholding requirement: More information needed.
+- Income requirement: Satisfied.
+
+Result:
+MORE INFORMATION NEEDED.
+
+Do not falsely display a positive eligibility result just to make the application appear intelligent.
+
+Use configurable JSON-based eligibility rules with test coverage and versioning.
+
+---
+
+# 9. PERSONALIZED SCHEME RECOMMENDATIONS
+
+Create an attractive recommendation dashboard.
+
+Each scheme card should contain:
+- Scheme name.
+- Department.
+- Category.
+- Short description.
+- Eligibility status.
+- Reason for recommendation.
+- Benefit information from verified sources.
+- Document availability status.
+- Official source link.
+- View Details action.
+- Save Scheme action.
+
+Allow filters:
+- Category.
+- Department.
+- Government level.
+- Location.
+- Eligibility status.
+
+Provide meaningful sorting based on relevance and verified information, not fabricated confidence percentages.
+
+---
+
+# 10. DOCUMENT CHECKLIST MODULE
+
+After selecting a scheme, generate its document checklist.
+
+Example categories:
+- Identity proof.
+- Residence proof.
+- Income certificate.
+- Caste certificate, if applicable.
+- Land records, if applicable.
+- Bank account proof, if officially required.
+- Photograph.
+- Educational certificate, if applicable.
+- Other scheme-specific documents.
+
+Checklist functionality:
+- Required / Optional labels.
+- Available / Not Available status.
+- Upload document only when necessary.
+- Document format and size validation.
+- Secure document access.
+- Downloadable checklist.
+- Print-friendly version.
+- Shareable checklist.
+
+Never imply that a document is mandatory unless the current verified scheme rules specify it.
+
+---
+
+# 11. APPLICATION CENTRE FINDER
+
+Build a nearby service-centre discovery module.
+
+Display verified:
+- CSC centres.
+- Panchayat offices.
+- Block offices.
+- Relevant government department offices.
+- Other authorised application centres.
+
+Each result should include:
+- Centre name.
+- Address.
+- Department/service.
+- Contact details, if verified.
+- Opening hours, if verified.
+- Distance, where location permission is granted.
+- Directions.
+- Last verified date.
+
+Use OpenStreetMap or another suitable mapping solution.
+
+If a centre is not verified, clearly label it as unverified.
+
+Do not invent office addresses, contact numbers or opening hours.
+
+---
+
+# 12. APPLICATION TRACKING
+
+Allow citizens to create and track application records.
+
+Fields:
+- Scheme.
+- Application reference number.
+- Submission date.
+- Application channel.
+- Current status.
+- Last update.
+- Status source.
+- Operator notes, where authorised.
+
+Statuses:
+- Not Applied.
+- Preparing Documents.
+- Ready to Apply.
+- Submitted.
+- Under Review.
+- Additional Information Required.
+- Approved.
+- Rejected.
+- Closed.
+
+Important:
+Only show official application status as verified when it comes from an authorised integration or reliable official source.
+
+If an operator updates a status manually, label it as an operator-reported update.
+
+Never fabricate live government application tracking.
+
+---
+
+# 13. PANCHAYAT OPERATOR DASHBOARD
+
+Create a professional web dashboard.
+
+Main navigation:
+- Overview.
+- Register Citizen.
+- Citizen Directory.
+- Scheme Discovery.
+- Eligibility Assessments.
+- Document Assistance.
+- Application Cases.
+- Follow-ups.
+- Service Centres.
+- Reports.
+- Profile and Settings.
+
+Dashboard statistics:
+- Citizens assisted.
+- Scheme searches completed.
+- Potentially eligible cases.
+- Cases requiring more information.
+- Applications submitted, if confirmed.
+- Pending follow-ups.
+
+Operator workflow:
+1. Login.
+2. Select assigned Panchayat.
+3. Search or register citizen.
+4. Obtain consent.
+5. Complete relevant profile fields.
+6. Find relevant schemes.
+7. Explain eligibility.
+8. Generate document checklist.
+9. Record assistance provided.
+10. Create follow-up if requested.
+
+All citizen access and case updates must be logged.
+
+---
+
+# 14. SUPER ADMIN PORTAL
+
+Create a separate administrative workspace.
+
+Sections:
+
+**Dashboard**
+- Total registered citizens.
+- Active operators.
+- Published schemes.
+- Draft schemes.
+- Pending scheme reviews.
+- Application cases.
+- System activity.
+
+**Scheme Management**
+- Create scheme.
+- Edit scheme.
+- Add eligibility conditions.
+- Add required documents.
+- Add official references.
+- Set effective dates.
+- Review and approve.
+- Publish or suspend.
+- View version history.
+
+**User Management**
+- Citizens.
+- Panchayat operators.
+- Supervisors.
+- Scheme editors.
+- Administrators.
+
+**Location Management**
+- States.
+- Districts.
+- Blocks.
+- Panchayats.
+- Villages.
+- Service-centre directory.
+
+**Audit and Analytics**
+- Scheme publication history.
+- Profile access logs.
+- Operator activity.
+- User feedback.
+- Failed discovery sessions.
+- Data freshness reports.
+
+Use confirmation dialogs for destructive or high-impact operations.
+
+---
+
+# 15. UI/UX DESIGN REQUIREMENTS
+
+Design the product like a premium real-world digital public-service platform.
+
+Citizen app:
+- Very simple home screen.
+- Large microphone action.
+- Prominent “Find Government Schemes” action.
+- “My Recommended Schemes”.
+- “My Documents”.
+- “Track Application”.
+- “Find Help Nearby”.
+- Language selector.
+- Profile and settings.
+
+Suggested home greeting:
+
+"नमस्ते! आपका स्वागत है।"
+
+Supporting message:
+
+"बताइए, आपको किस सरकारी योजना की जानकारी चाहिए?"
+
+Main CTA:
+
+"बोलकर पूछें"
+
+Secondary CTA:
+
+"लिखकर खोजें"
+
+Use:
+- White and off-white surfaces.
+- Green primary actions.
+- Clear information hierarchy.
+- Accessible text sizes.
+- Consistent icons.
+- Small, meaningful animations.
+- Responsive layouts.
+- Loading, empty, error and success states.
+
+Do not overcrowd the citizen dashboard.
+
+The operator and admin interfaces may be information-dense but must remain clean and organised.
+
+---
+
+# 16. TECHNICAL ARCHITECTURE
+
+Recommended technology stack:
+
+### Android
+- Kotlin.
+- Jetpack Compose.
+- Android Speech APIs or approved speech provider.
+- Room database for offline cache.
+- Firebase Cloud Messaging for notifications.
+
+### Web
+- React or Next.js.
+- TypeScript.
+- Tailwind CSS.
+- Accessible component system.
+
+### Backend
+- Python FastAPI.
+- Pydantic.
+- SQLAlchemy.
+- REST APIs.
+- Background task processing.
+
+### Database
+- PostgreSQL.
+- Proper relational schema.
+- Indexing.
+- Database migrations.
+- Backup strategy.
+
+### AI
+- Gemini API for natural-language understanding and grounded explanations.
+- Speech-to-text and text-to-speech provider.
+- Bhashini integration where available and appropriate.
+- Deterministic Python eligibility engine.
+
+### Maps
+- OpenStreetMap.
+- Suitable geocoding and routing service.
+
+### Deployment
+- Secure cloud hosting.
+- Separate development, staging and production environments.
+- CI/CD.
+- HTTPS.
+- Monitoring and logging.
+- Automated backups.
+
+Keep integrations configurable through environment variables.
+
+Never expose API keys or service credentials in frontend code.
+
+---
+
+# 17. DATABASE DESIGN
+
+Create a properly normalised database with these core entities:
+
+- users
+- citizen_profiles
+- consent_records
+- roles
+- permissions
+- locations
+- states
+- districts
+- blocks
+- panchayats
+- villages
+- schemes
+- scheme_versions
+- scheme_categories
+- scheme_eligibility_rules
+- scheme_documents
+- scheme_sources
+- eligibility_evaluations
+- eligibility_criterion_results
+- saved_schemes
+- document_checklists
+- uploaded_documents
+- service_centres
+- application_cases
+- application_status_history
+- operator_assignments
+- operator_notes
+- notifications
+- user_feedback
+- audit_logs
+
+Define:
+- Primary keys.
+- Foreign keys.
+- Indexes.
+- Unique constraints.
+- Timestamps.
+- Soft-delete strategy where appropriate.
+- Data retention rules.
+
+Use migrations rather than manually changing production schemas.
+
+---
+
+# 18. API DESIGN
+
+Implement versioned REST APIs.
+
+Example endpoints:
+
+Authentication:
+- POST /api/v1/auth/register
+- POST /api/v1/auth/login
+- POST /api/v1/auth/logout
+- GET /api/v1/auth/me
+
+Citizen:
+- GET /api/v1/citizens/me
+- PATCH /api/v1/citizens/me
+- GET /api/v1/citizens/me/saved-schemes
+
+Schemes:
+- GET /api/v1/schemes
+- GET /api/v1/schemes/{id}
+- GET /api/v1/schemes/categories
+
+Eligibility:
+- POST /api/v1/eligibility/evaluate
+- GET /api/v1/eligibility/{evaluation_id}
+
+Documents:
+- GET /api/v1/checklists/{id}
+- PATCH /api/v1/checklists/{id}/items/{item_id}
+
+Centres:
+- GET /api/v1/centres/nearby
+
+Applications:
+- POST /api/v1/applications
+- GET /api/v1/applications
+- GET /api/v1/applications/{id}
+
+Operator:
+- GET /api/v1/operator/dashboard
+- POST /api/v1/operator/citizens
+- GET /api/v1/operator/cases
+
+Admin:
+- POST /api/v1/admin/schemes
+- PATCH /api/v1/admin/schemes/{id}
+- POST /api/v1/admin/schemes/{id}/approve
+- POST /api/v1/admin/schemes/{id}/publish
+- GET /api/v1/admin/audit-logs
+
+Validate every request and response.
+
+Implement pagination, filtering, error handling and authorisation.
+
+---
+
+# 19. PRIVACY AND SECURITY
+
+Treat citizen information as sensitive.
+
+Mandatory requirements:
+- HTTPS.
+- Secure password hashing.
+- Secure authentication and session handling.
+- Role-based access control.
+- Consent management.
+- Encryption at rest.
+- Audit logs.
+- Rate limiting.
+- Input validation.
+- Secure file upload validation.
+- Backup and recovery.
+- Secret management.
+- Access revocation.
+- Data minimisation.
+- Data retention and deletion processes.
+
+Do not collect unnecessary Aadhaar or bank details.
+
+Never request passwords, OTPs or banking credentials.
+
+Do not use personal citizen information to train external AI systems without appropriate explicit consent and legal review.
+
+Comply with applicable Indian data-protection requirements and obtain legal review before public deployment.
+
+---
+
+# 20. OFFLINE-FIRST FUNCTIONALITY
+
+The platform must remain useful in areas with weak connectivity.
+
+Support:
+- Cached public scheme information.
+- Saved citizen checklists.
+- Draft profile forms.
+- Resumable workflows.
+- Offline operator notes where safely supported.
+- Sync queue when internet returns.
+- Conflict handling.
+- Clear last-synced timestamps.
+
+Do not display stale data as current. Show a visible freshness warning.
+
+---
+
+# 21. TESTING REQUIREMENTS
+
+Build automated tests for:
+
+- Authentication.
+- Role permissions.
+- Consent management.
+- Profile validation.
+- Scheme search.
+- Eligibility rules.
+- Rule versioning.
+- Effective dates.
+- Document checklist generation.
+- Application tracking.
+- Operator access boundaries.
+- Admin approval and publication.
+- Audit logging.
+- API validation.
+- Offline behaviour.
+- Voice recognition correction.
+
+Create test cases for:
+- Eligible citizen.
+- Ineligible citizen.
+- Missing information.
+- Boundary values.
+- Conflicting attributes.
+- Expired scheme rules.
+- Outdated scheme source.
+- Unverified service centre.
+
+Do not claim a feature is complete until it has been tested.
+
+---
+
+# 22. DEVELOPMENT PHASES
+
+Build in controlled phases.
+
+### PHASE 1 — Foundation
+- Project structure.
+- Design system.
+- Database.
+- Authentication.
+- Role-based permissions.
+- Citizen profile.
+- Admin foundation.
+
+### PHASE 2 — Scheme Intelligence
+- Scheme catalogue.
+- Scheme data management.
+- Source verification.
+- Eligibility rules.
+- Deterministic assessment.
+- Recommendation explanations.
+
+### PHASE 3 — Citizen Experience
+- Voice assistant.
+- Multilingual interaction.
+- Citizen dashboard.
+- Scheme details.
+- Document checklist.
+- Saved schemes.
+
+### PHASE 4 — Panchayat Operations
+- Operator dashboard.
+- Assisted registration.
+- Consent capture.
+- Case management.
+- Centre directory.
+- Follow-ups.
+
+### PHASE 5 — Advanced Features
+- Application tracking.
+- Notifications.
+- Offline synchronisation.
+- Analytics.
+- Improved voice experiences.
+
+### PHASE 6 — Production Readiness
+- Security audit.
+- Performance testing.
+- Accessibility testing.
+- Backup verification.
+- Deployment.
+- Monitoring.
+- Pilot feedback and fixes.
+
+---
+
+# 23. STRICT DEVELOPMENT RULES
+
+Follow these instructions throughout development:
+
+1. First inspect the current workspace and understand its existing structure.
+2. Do not unnecessarily overwrite working files.
+3. Build reusable components and maintainable architecture.
+4. Do not create fake buttons or non-functional UI.
+5. Every visible action must work or be clearly marked as unavailable.
+6. Never hardcode production credentials.
+7. Never expose API keys in frontend code.
+8. Never use fabricated government information as real information.
+9. Never let the LLM make the final eligibility decision.
+10. Never claim that an application was submitted or approved without reliable confirmation.
+11. Use proper database persistence, not temporary frontend arrays, for core workflows.
+12. Provide proper loading, error, empty and success states.
+13. Keep frontend and backend contracts consistent.
+14. Validate every role's access independently.
+15. Do not remove existing working features without a clear reason.
+16. Do not mark tasks complete until implementation and testing are verified.
+17. Maintain a clear development log and update documentation.
+18. Use modular, clean and production-oriented code.
+
+---
+
+# 24. REQUIRED DELIVERABLES
+
+Deliver:
+
+1. Complete application source code.
+2. Citizen Android application.
+3. Panchayat operator web dashboard.
+4. Super Admin portal.
+5. Backend API.
+6. Database schema and migrations.
+7. Eligibility engine.
+8. Scheme management module.
+9. Voice assistant integration.
+10. API documentation.
+11. Environment variable example file.
+12. Installation and setup guide.
+13. Deployment guide.
+14. Database backup and recovery instructions.
+15. Automated test suite.
+16. Test report.
+17. Architecture documentation.
+18. User guide.
+19. Known limitations and future roadmap.
+
+---
+
+# 25. FINAL EXECUTION INSTRUCTIONS
+
+Start by analysing the available development environment.
+
+Then:
+
+**STEP 1:** Present a concise architecture and implementation plan.
+
+**STEP 2:** Create the project structure and design system.
+
+**STEP 3:** Implement the backend, database and authentication.
+
+**STEP 4:** Build the citizen experience.
+
+**STEP 5:** Build the scheme catalogue and deterministic eligibility engine.
+
+**STEP 6:** Build the Panchayat operator dashboard.
+
+**STEP 7:** Build the Super Admin portal.
+
+**STEP 8:** Integrate voice and multilingual support.
+
+**STEP 9:** Test the complete workflows.
+
+**STEP 10:** Prepare deployment and documentation.
+
+Work incrementally. After every major phase, verify that the application builds and the implemented workflows work.
+
+If an external integration requires credentials, create the integration interface and clearly document the required configuration. Do not pretend that an unconfigured integration is operational.
+
+If official scheme information cannot be verified, use clearly labelled sample data and explain how an administrator can replace it with verified records.
+
+## THE FINAL PRODUCT MUST BE:
+
+A genuinely useful, accessible, trustworthy, voice-first government scheme discovery and eligibility guidance platform—not merely an attractive demonstration.
+
+Build YojanaMitra as a product that a real citizen in a rural Panchayat can understand and use confidently.

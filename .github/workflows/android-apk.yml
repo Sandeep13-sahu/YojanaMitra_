@@ -1,0 +1,189 @@
+name: Build & Release YojanaMitra Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build Type (release or debug)'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build YojanaMitra APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x gradlew || true
+
+      - name: Restore or Prepare Keystore
+        id: prepare_keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Decoding release keystore from GitHub Secrets..."
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/my-upload-key.jks"
+            echo "HAS_RELEASE_KEYSTORE=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No RELEASE_KEYSTORE_BASE64 found in secrets. Generating standard upload key for unsigned/fallback release build..."
+            keytool -genkeypair -v \
+              -keystore "$GITHUB_WORKSPACE/my-upload-key.jks" \
+              -alias "upload" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "android" \
+              -keypass "android" \
+              -dname "CN=YojanaMitra, OU=Build, O=Gov, L=Delhi, S=Delhi, C=IN"
+            echo "HAS_RELEASE_KEYSTORE=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate Dummy debug.keystore if Missing
+        run: |
+          if [ ! -f "debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore debug.keystore \
+              -alias "androiddebugkey" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "android" \
+              -keypass "android" \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Prepare Secrets Configuration (.env)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ ! -f ".env" ]; then
+            echo "# Auto-generated build env" > .env
+            if [ -n "$GEMINI_API_KEY" ]; then
+              echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
+            else
+              echo "GEMINI_API_KEY=" >> .env
+            fi
+          fi
+
+      - name: Determine Build Target
+        id: build_target
+        run: |
+          if [[ "${{ github.event.inputs.build_type }}" == "debug" ]]; then
+            echo "TASK=assembleDebug" >> "$GITHUB_OUTPUT"
+            echo "TARGET_DIR=app/build/outputs/apk/debug" >> "$GITHUB_OUTPUT"
+            echo "SRC_FILE=app-debug.apk" >> "$GITHUB_OUTPUT"
+          else
+            echo "TASK=assembleRelease" >> "$GITHUB_OUTPUT"
+            echo "TARGET_DIR=app/build/outputs/apk/release" >> "$GITHUB_OUTPUT"
+            echo "SRC_FILE=app-release.apk" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build Android APK with Gradle
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD || 'android' }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD || 'android' }}
+        run: |
+          ./gradlew ${{ steps.build_target.outputs.TASK }} --stacktrace
+
+      - name: Extract Version Info & Prepare Release Assets
+        id: prep_assets
+        run: |
+          # Extract versionName and versionCode from build.gradle.kts
+          VERSION_NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts || echo "1.0.0")
+          VERSION_CODE=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' app/build.gradle.kts || echo "1")
+          
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            TAG_NAME="${{ github.ref_name }}"
+          else
+            TAG_NAME="v${VERSION_NAME}"
+          fi
+          
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          SRC_APK="${{ steps.build_target.outputs.TARGET_DIR }}/${{ steps.build_target.outputs.SRC_FILE }}"
+          
+          # 1. Predictable latest release asset name
+          cp "$SRC_APK" "$GITHUB_WORKSPACE/dist/YojanaMitra-latest.apk"
+          # 2. Predictable versioned release asset name
+          cp "$SRC_APK" "$GITHUB_WORKSPACE/dist/YojanaMitra-${TAG_NAME}.apk"
+          
+          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "LATEST_APK=$GITHUB_WORKSPACE/dist/YojanaMitra-latest.apk" >> "$GITHUB_OUTPUT"
+          echo "VERSIONED_APK=$GITHUB_WORKSPACE/dist/YojanaMitra-${TAG_NAME}.apk" >> "$GITHUB_OUTPUT"
+          
+          ls -lh "$GITHUB_WORKSPACE/dist"
+
+      - name: Upload APKs as Workflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: yojanamitra-android-apk
+          path: |
+            dist/YojanaMitra-latest.apk
+            dist/YojanaMitra-*.apk
+          retention-days: 30
+
+      - name: Publish GitHub Release (Tag or Main Push)
+        if: github.ref_type == 'tag' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.prep_assets.outputs.TAG_NAME }}
+          name: "YojanaMitra Release ${{ steps.prep_assets.outputs.TAG_NAME }}"
+          draft: false
+          prerelease: false
+          make_latest: true
+          generate_release_notes: true
+          body: |
+            ## 📱 YojanaMitra – आपका सरकारी योजना साथी
+            ### Android Application Release (${{ steps.prep_assets.outputs.TAG_NAME }})
+
+            **Automated Build Details:**
+            - **App Version:** `${{ steps.prep_assets.outputs.VERSION_NAME }}` (Build code: `${{ steps.prep_assets.outputs.VERSION_CODE }}`)
+            - **Commit SHA:** `${{ github.sha }}`
+            - **Build Trigger:** `${{ github.event_name }}` (`${{ github.ref }}`)
+            - **All-India Government Schemes:** Central & 28 States / 8 UTs discovery & eligibility engine included.
+
+            ---
+            ### 📥 Download Options
+            - **[Direct Download Latest APK](https://github.com/${{ github.repository }}/releases/latest/download/YojanaMitra-latest.apk)** (`YojanaMitra-latest.apk`)
+            - **Versioned APK:** `${{ steps.prep_assets.outputs.TAG_NAME }}` attached below.
+          files: |
+            dist/YojanaMitra-latest.apk
+            dist/YojanaMitra-${{ steps.prep_assets.outputs.TAG_NAME }}.apk

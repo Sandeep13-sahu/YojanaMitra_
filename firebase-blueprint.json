@@ -1,0 +1,245 @@
+{
+  "entities": {
+    "CitizenProfile": {
+      "title": "Citizen Profile",
+      "description": "Progressive profile of a citizen for scheme eligibility evaluation and consent",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "preferredLanguage": { "type": "string" },
+        "state": { "type": "string" },
+        "district": { "type": "string" },
+        "block": { "type": "string" },
+        "panchayat": { "type": "string" },
+        "village": { "type": "string" },
+        "age": { "type": "integer" },
+        "gender": { "type": "string" },
+        "occupation": { "type": "string" },
+        "landholdingAcres": { "type": "number" },
+        "householdIncome": { "type": "integer" },
+        "category": { "type": "string" },
+        "hasDisability": { "type": "boolean" },
+        "hasBplRationCard": { "type": "boolean" },
+        "consentGiven": { "type": "boolean" },
+        "consentTimestamp": { "type": "string", "format": "date-time" },
+        "operatorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "fullName", "consentGiven", "createdAt", "updatedAt"]
+    },
+    "Scheme": {
+      "title": "Government Scheme",
+      "description": "Verified government scheme catalog with metadata and eligibility criteria",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "schemeName": { "type": "string" },
+        "schemeNameHindi": { "type": "string" },
+        "category": { "type": "string" },
+        "department": { "type": "string" },
+        "governmentLevel": { "type": "string" },
+        "applicableState": { "type": "string" },
+        "shortDescription": { "type": "string" },
+        "shortDescriptionHindi": { "type": "string" },
+        "benefitSummary": { "type": "string" },
+        "benefitSummaryHindi": { "type": "string" },
+        "officialLink": { "type": "string" },
+        "sourceReference": { "type": "string" },
+        "lastVerifiedDate": { "type": "string" },
+        "version": { "type": "integer" },
+        "isPublished": { "type": "boolean" },
+        "requiredDocuments": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["schemeName", "schemeNameHindi", "category", "department", "isPublished", "createdAt", "updatedAt"]
+    },
+    "ApplicationCase": {
+      "title": "Application Case",
+      "description": "Citizen application track record for a specific scheme",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "citizenName": { "type": "string" },
+        "schemeId": { "type": "string" },
+        "schemeName": { "type": "string" },
+        "referenceNumber": { "type": "string" },
+        "submissionDate": { "type": "string" },
+        "channel": { "type": "string" },
+        "status": { "type": "string" },
+        "statusSource": { "type": "string" },
+        "operatorNotes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "schemeId", "schemeName", "status", "createdAt", "updatedAt"]
+    },
+    "ServiceCentre": {
+      "title": "Service Centre",
+      "description": "Authorized CSC, Panchayat Bhawan, or Block office for offline application assistance",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "address": { "type": "string" },
+        "district": { "type": "string" },
+        "block": { "type": "string" },
+        "panchayat": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "openingHours": { "type": "string" },
+        "distanceKm": { "type": "number" },
+        "isVerified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "type", "address", "district", "isVerified", "createdAt"]
+    },
+    "SavedScheme": {
+      "title": "Saved Scheme",
+      "description": "Bookmarked scheme for a citizen",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "schemeId": { "type": "string" },
+        "schemeName": { "type": "string" },
+        "category": { "type": "string" },
+        "savedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "schemeId", "schemeName", "savedAt"]
+    },
+    "UserRoleRecord": {
+      "title": "User Role Record",
+      "description": "Authoritative server-side user role and status record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["CITIZEN", "OPERATOR", "SUPER_ADMIN"] },
+        "status": { "type": "string", "enum": ["ACTIVE", "SUSPENDED", "DEACTIVATED"] },
+        "email": { "type": "string" },
+        "jurisdictionState": { "type": "string" },
+        "jurisdictionDistrict": { "type": "string" },
+        "jurisdictionBlock": { "type": "string" },
+        "jurisdictionPanchayat": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "role", "status", "createdAt", "updatedAt"]
+    },
+    "OperatorAccount": {
+      "title": "Operator Account",
+      "description": "Authorized Panchayat/CSC operator account with jurisdiction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "operatorId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "employeeId": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "SUSPENDED", "DEACTIVATED"] },
+        "assignedCentreId": { "type": "string" },
+        "assignedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["operatorId", "fullName", "email", "status", "createdAt", "updatedAt"]
+    },
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "Immutable security and administrative action audit record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "actorId": { "type": "string" },
+        "actorEmail": { "type": "string" },
+        "actorRole": { "type": "string" },
+        "action": { "type": "string" },
+        "targetEntity": { "type": "string" },
+        "details": { "type": "string" },
+        "status": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["actorId", "actorRole", "action", "timestamp"]
+    },
+    "GovernmentSource": {
+      "title": "Government Source",
+      "description": "Registered government portal, ministry, or gazette scanning source",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sourceId": { "type": "string" },
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "governmentLevel": { "type": "string" },
+        "jurisdictionState": { "type": "string" },
+        "healthStatus": { "type": "string" },
+        "totalDiscoveredCount": { "type": "integer" }
+      },
+      "required": ["sourceId", "name", "url", "governmentLevel", "healthStatus"]
+    },
+    "DiscoveredAnnouncement": {
+      "title": "Discovered Announcement",
+      "description": "Discovered official government scheme notification or update",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "announcementId": { "type": "string" },
+        "title": { "type": "string" },
+        "classification": { "type": "string" },
+        "jurisdictionState": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "isPublished": { "type": "boolean" }
+      },
+      "required": ["announcementId", "title", "classification", "jurisdictionState"]
+    }
+  },
+  "firestore": {
+    "/citizen_profiles/{profileId}": {
+      "schema": { "$ref": "#/entities/CitizenProfile" },
+      "description": "Collection of citizen demographic and consent profiles"
+    },
+    "/schemes/{schemeId}": {
+      "schema": { "$ref": "#/entities/Scheme" },
+      "description": "Verified government scheme catalog"
+    },
+    "/application_cases/{caseId}": {
+      "schema": { "$ref": "#/entities/ApplicationCase" },
+      "description": "Application tracking records"
+    },
+    "/service_centres/{centreId}": {
+      "schema": { "$ref": "#/entities/ServiceCentre" },
+      "description": "Authorized CSC and Panchayat service centres"
+    },
+    "/saved_schemes/{savedId}": {
+      "schema": { "$ref": "#/entities/SavedScheme" },
+      "description": "Citizen bookmarked schemes"
+    },
+    "/user_roles/{userId}": {
+      "schema": { "$ref": "#/entities/UserRoleRecord" },
+      "description": "Authoritative user roles and status"
+    },
+    "/operator_accounts/{operatorId}": {
+      "schema": { "$ref": "#/entities/OperatorAccount" },
+      "description": "Authorized operator accounts"
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Security and administrative audit trail"
+    },
+    "/government_sources/{sourceId}": {
+      "schema": { "$ref": "#/entities/GovernmentSource" },
+      "description": "Registry of national and state government sources"
+    },
+    "/discovered_announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/DiscoveredAnnouncement" },
+      "description": "Discovered national scheme announcements and changes"
+    }
+  }
+}
