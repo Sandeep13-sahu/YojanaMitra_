@@ -49,32 +49,55 @@ jobs:
       - name: Make Gradle Wrapper Executable
         run: chmod +x gradlew || true
 
-      - name: Restore or Prepare Keystore
-        id: prepare_keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+      - name: Determine Build Configuration
+        id: build_config
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Decoding release keystore from GitHub Secrets..."
-            echo "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/my-upload-key.jks"
-            echo "HAS_RELEASE_KEYSTORE=true" >> "$GITHUB_OUTPUT"
+          # If triggered via workflow_dispatch with 'debug', build debug; otherwise release
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.build_type }}" == "debug" ]]; then
+            echo "BUILD_TYPE=debug" >> "$GITHUB_OUTPUT"
+            echo "TASK=assembleDebug" >> "$GITHUB_OUTPUT"
+            echo "SRC_APK=app/build/outputs/apk/debug/app-debug.apk" >> "$GITHUB_OUTPUT"
           else
-            echo "No RELEASE_KEYSTORE_BASE64 found in secrets. Generating standard upload key for unsigned/fallback release build..."
-            keytool -genkeypair -v \
-              -keystore "$GITHUB_WORKSPACE/my-upload-key.jks" \
-              -alias "upload" \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -storepass "android" \
-              -keypass "android" \
-              -dname "CN=YojanaMitra, OU=Build, O=Gov, L=Delhi, S=Delhi, C=IN"
-            echo "HAS_RELEASE_KEYSTORE=false" >> "$GITHUB_OUTPUT"
+            echo "BUILD_TYPE=release" >> "$GITHUB_OUTPUT"
+            echo "TASK=assembleRelease" >> "$GITHUB_OUTPUT"
+            echo "SRC_APK=app/build/outputs/apk/release/app-release.apk" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Generate Dummy debug.keystore if Missing
+      - name: Validate and Decode Release Keystore
+        if: steps.build_config.outputs.BUILD_TYPE == 'release'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PWD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_PWD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          echo "Checking required permanent release signing secrets..."
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Missing secret 'RELEASE_KEYSTORE_BASE64'. Required for release builds."
+            exit 1
+          fi
+          if [ -z "$STORE_PWD" ]; then
+            echo "::error::Missing secret 'RELEASE_STORE_PASSWORD'. Required for release builds."
+            exit 1
+          fi
+          if [ -z "$KEY_PWD" ]; then
+            echo "::error::Missing secret 'RELEASE_KEY_PASSWORD'. Required for release builds."
+            exit 1
+          fi
+
+          echo "Decoding release keystore into my-upload-key.jks..."
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/my-upload-key.jks"
+
+          if [ ! -s "$GITHUB_WORKSPACE/my-upload-key.jks" ]; then
+            echo "::error::Decoded my-upload-key.jks is empty or corrupted."
+            exit 1
+          fi
+          echo "Keystore successfully prepared."
+
+      - name: Ensure Debug Keystore Exists (Debug Builds Only)
+        if: steps.build_config.outputs.BUILD_TYPE == 'debug'
         run: |
           if [ ! -f "debug.keystore" ]; then
+            echo "Generating debug.keystore for local debug build..."
             keytool -genkeypair -v \
               -keystore debug.keystore \
               -alias "androiddebugkey" \
@@ -86,104 +109,117 @@ jobs:
               -dname "CN=Android Debug,O=Android,C=US"
           fi
 
-      - name: Prepare Secrets Configuration (.env)
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Prepare Clean Environment (.env)
         run: |
+          # Keep production secrets out of client APK.
+          # Create placeholder .env only to satisfy Secrets Gradle Plugin without bundling secrets.
           if [ ! -f ".env" ]; then
-            echo "# Auto-generated build env" > .env
-            if [ -n "$GEMINI_API_KEY" ]; then
-              echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
-            else
-              echo "GEMINI_API_KEY=" >> .env
-            fi
-          fi
-
-      - name: Determine Build Target
-        id: build_target
-        run: |
-          if [[ "${{ github.event.inputs.build_type }}" == "debug" ]]; then
-            echo "TASK=assembleDebug" >> "$GITHUB_OUTPUT"
-            echo "TARGET_DIR=app/build/outputs/apk/debug" >> "$GITHUB_OUTPUT"
-            echo "SRC_FILE=app-debug.apk" >> "$GITHUB_OUTPUT"
-          else
-            echo "TASK=assembleRelease" >> "$GITHUB_OUTPUT"
-            echo "TARGET_DIR=app/build/outputs/apk/release" >> "$GITHUB_OUTPUT"
-            echo "SRC_FILE=app-release.apk" >> "$GITHUB_OUTPUT"
+            echo "# Build-time environment placeholder" > .env
           fi
 
       - name: Build Android APK with Gradle
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
-          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD || 'android' }}
-          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD || 'android' }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
-          ./gradlew ${{ steps.build_target.outputs.TASK }} --stacktrace
+          ./gradlew ${{ steps.build_config.outputs.TASK }} --stacktrace
 
-      - name: Extract Version Info & Prepare Release Assets
-        id: prep_assets
+      - name: Extract Version & Package Output Artifacts
+        id: prep_artifacts
         run: |
-          # Extract versionName and versionCode from build.gradle.kts
-          VERSION_NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts || echo "1.0.0")
+          # Robust extraction of versionName and versionCode from app/build.gradle.kts
+          VERSION_NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts || echo "1.0")
           VERSION_CODE=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' app/build.gradle.kts || echo "1")
-          
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            TAG_NAME="${{ github.ref_name }}"
-          else
-            TAG_NAME="v${VERSION_NAME}"
-          fi
-          
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+
+          echo "Extracted App Version: ${VERSION_NAME} (versionCode: ${VERSION_CODE})"
+
           mkdir -p "$GITHUB_WORKSPACE/dist"
-          SRC_APK="${{ steps.build_target.outputs.TARGET_DIR }}/${{ steps.build_target.outputs.SRC_FILE }}"
-          
-          # 1. Predictable latest release asset name
-          cp "$SRC_APK" "$GITHUB_WORKSPACE/dist/YojanaMitra-latest.apk"
-          # 2. Predictable versioned release asset name
-          cp "$SRC_APK" "$GITHUB_WORKSPACE/dist/YojanaMitra-${TAG_NAME}.apk"
-          
-          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_OUTPUT"
-          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_OUTPUT"
-          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_OUTPUT"
-          echo "LATEST_APK=$GITHUB_WORKSPACE/dist/YojanaMitra-latest.apk" >> "$GITHUB_OUTPUT"
-          echo "VERSIONED_APK=$GITHUB_WORKSPACE/dist/YojanaMitra-${TAG_NAME}.apk" >> "$GITHUB_OUTPUT"
-          
+          SRC="${{ steps.build_config.outputs.SRC_APK }}"
+
+          if [ ! -f "$SRC" ]; then
+            echo "::error::Source APK not found at $SRC"
+            exit 1
+          fi
+
+          BUILD_TYPE="${{ steps.build_config.outputs.BUILD_TYPE }}"
+
+          if [[ "$BUILD_TYPE" == "debug" ]]; then
+            cp "$SRC" "$GITHUB_WORKSPACE/dist/YojanaMitra-debug.apk"
+            echo "ARTIFACT_PATH=dist/YojanaMitra-debug.apk" >> "$GITHUB_OUTPUT"
+            echo "IS_RELEASE=false" >> "$GITHUB_OUTPUT"
+          else
+            # 1. Permanent stable name for latest release download
+            cp "$SRC" "$GITHUB_WORKSPACE/dist/YojanaMitra-latest.apk"
+
+            # 2. Unique versioned/tagged name
+            if [[ "${{ github.ref_type }}" == "tag" ]]; then
+              RELEASE_TAG="${{ github.ref_name }}"
+              VERSIONED_APK_NAME="YojanaMitra-${RELEASE_TAG}.apk"
+            else
+              # For branch push on main/master, avoid reusing static tag to prevent duplicate collisions
+              RELEASE_TAG="v${VERSION_NAME}-b${VERSION_CODE}-${SHORT_SHA}"
+              VERSIONED_APK_NAME="YojanaMitra-${RELEASE_TAG}.apk"
+            fi
+
+            cp "$SRC" "$GITHUB_WORKSPACE/dist/${VERSIONED_APK_NAME}"
+
+            echo "ARTIFACT_PATH=dist/*.apk" >> "$GITHUB_OUTPUT"
+            echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+            echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+            echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+            echo "VERSIONED_APK_NAME=$VERSIONED_APK_NAME" >> "$GITHUB_OUTPUT"
+            echo "IS_RELEASE=true" >> "$GITHUB_OUTPUT"
+          fi
+
           ls -lh "$GITHUB_WORKSPACE/dist"
 
-      - name: Upload APKs as Workflow Artifacts
+      - name: Upload Debug APK Artifact
+        if: steps.prep_artifacts.outputs.IS_RELEASE == 'false'
         uses: actions/upload-artifact@v4
         with:
-          name: yojanamitra-android-apk
+          name: yojanamitra-debug-apk
+          path: dist/YojanaMitra-debug.apk
+          retention-days: 30
+
+      - name: Upload Release APK Artifacts
+        if: steps.prep_artifacts.outputs.IS_RELEASE == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: yojanamitra-release-apk
           path: |
             dist/YojanaMitra-latest.apk
             dist/YojanaMitra-*.apk
           retention-days: 30
 
-      - name: Publish GitHub Release (Tag or Main Push)
-        if: github.ref_type == 'tag' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      - name: Publish GitHub Release (Release Builds Only)
+        if: steps.prep_artifacts.outputs.IS_RELEASE == 'true'
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.prep_assets.outputs.TAG_NAME }}
-          name: "YojanaMitra Release ${{ steps.prep_assets.outputs.TAG_NAME }}"
+          tag_name: ${{ steps.prep_artifacts.outputs.RELEASE_TAG }}
+          name: "YojanaMitra Release ${{ steps.prep_artifacts.outputs.RELEASE_TAG }}"
           draft: false
           prerelease: false
           make_latest: true
           generate_release_notes: true
           body: |
             ## 📱 YojanaMitra – आपका सरकारी योजना साथी
-            ### Android Application Release (${{ steps.prep_assets.outputs.TAG_NAME }})
+            ### Android Application Release (${{ steps.prep_artifacts.outputs.RELEASE_TAG }})
 
             **Automated Build Details:**
-            - **App Version:** `${{ steps.prep_assets.outputs.VERSION_NAME }}` (Build code: `${{ steps.prep_assets.outputs.VERSION_CODE }}`)
+            - **App Version:** `${{ steps.prep_artifacts.outputs.VERSION_NAME }}`
+            - **Version Code:** `${{ steps.prep_artifacts.outputs.VERSION_CODE }}`
             - **Commit SHA:** `${{ github.sha }}`
             - **Build Trigger:** `${{ github.event_name }}` (`${{ github.ref }}`)
-            - **All-India Government Schemes:** Central & 28 States / 8 UTs discovery & eligibility engine included.
+            - **Description:** Automated Android APK build from the YojanaMitra repository.
 
             ---
             ### 📥 Download Options
             - **[Direct Download Latest APK](https://github.com/${{ github.repository }}/releases/latest/download/YojanaMitra-latest.apk)** (`YojanaMitra-latest.apk`)
-            - **Versioned APK:** `${{ steps.prep_assets.outputs.TAG_NAME }}` attached below.
+            - **Versioned APK:** `${{ steps.prep_artifacts.outputs.VERSIONED_APK_NAME }}` attached below.
           files: |
             dist/YojanaMitra-latest.apk
-            dist/YojanaMitra-${{ steps.prep_assets.outputs.TAG_NAME }}.apk
+            dist/${{ steps.prep_artifacts.outputs.VERSIONED_APK_NAME }}
