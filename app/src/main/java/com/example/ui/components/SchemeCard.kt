@@ -70,6 +70,7 @@ fun SchemeCard(
     onSaveToggle: () -> Unit,
     onCheckEligibility: () -> Unit,
     onViewDocuments: () -> Unit,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uriHandler = LocalUriHandler.current
@@ -96,6 +97,7 @@ fun SchemeCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 7.dp)
+            .clickable { onClick() }
             .testTag("scheme_card_${scheme.id}"),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),

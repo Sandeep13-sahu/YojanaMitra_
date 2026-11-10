@@ -84,6 +84,7 @@ class YojanaRepository(private val db: FirebaseFirestore) {
                 "hasBplRationCard" to profile.hasBplRationCard,
                 "consentGiven" to profile.consentGiven,
                 "operatorId" to profile.operatorId,
+                "photoUrl" to profile.photoUrl,
                 "createdAt" to (profile.createdAt ?: FieldValue.serverTimestamp()),
                 "updatedAt" to FieldValue.serverTimestamp()
             ).filterValues { it != null }

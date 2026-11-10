@@ -75,6 +75,7 @@ import com.example.ui.components.DocumentChecklistDialog
 import com.example.ui.components.EligibilityBreakdownDialog
 import com.example.ui.components.ProfileEditDialog
 import com.example.ui.components.SchemeCard
+import com.example.ui.components.SchemeDetailDialog
 import com.example.ui.components.VoiceInteractionComponent
 import com.example.ui.components.VoiceToTextInput
 import com.example.ui.theme.EmeraldContainer
@@ -111,6 +112,7 @@ fun CitizenScreen(
     val selectedState by viewModel.selectedState.collectAsState()
 
     var activeTab by remember { mutableStateOf(CitizenTab.SCHEMES) }
+    var selectedSchemeForDetail by remember { mutableStateOf<Scheme?>(null) }
     var selectedSchemeForEligibility by remember { mutableStateOf<Scheme?>(null) }
     var selectedSchemeForDocs by remember { mutableStateOf<Scheme?>(null) }
     var isProfileDialogOpen by remember { mutableStateOf(false) }
@@ -527,47 +529,31 @@ fun CitizenScreen(
                                 isSaved = isSaved,
                                 onSaveToggle = { viewModel.toggleSaveScheme(scheme) },
                                 onCheckEligibility = { selectedSchemeForEligibility = scheme },
-                                onViewDocuments = { selectedSchemeForDocs = scheme }
+                                onViewDocuments = { selectedSchemeForDocs = scheme },
+                                onClick = { selectedSchemeForDetail = scheme }
                             )
                         }
 
-                        // Discreet Staff Gateway Link in Footer (Separating Workspaces)
+                        // Verified Public Service Trust Banner in Footer
                         item {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            Row(
+                            Spacer(modifier = Modifier.height(28.dp))
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 12.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = "विभागीय कर्मचारी? ",
+                                    text = "• सभी योजनाएं आधिकारिक सरकारी अधिसूचनाओं से सत्यापित हैं •",
                                     fontSize = 11.sp,
-                                    color = Color(0xFF889890)
+                                    color = Color(0xFF889890),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "ऑपरेटर लॉगिन",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = EmeraldPrimary,
-                                    modifier = Modifier
-                                        .clickable { viewModel.navigateToWorkspace(com.example.ui.WorkspaceView.OPERATOR_LOGIN) }
-                                        .testTag("official_portal_link")
-                                )
-                                Text(
-                                    text = " • ",
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF889890)
-                                )
-                                Text(
-                                    text = "एडमिन पोर्टल",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = EmeraldDeep,
-                                    modifier = Modifier
-                                        .clickable { viewModel.navigateToWorkspace(com.example.ui.WorkspaceView.ADMIN_LOGIN) }
-                                        .testTag("admin_portal_link")
+                                    text = "राष्ट्रीय एवं राज्य स्तरीय जनकल्याण पोर्टल",
+                                    fontSize = 10.sp,
+                                    color = Color(0xFFA0B0A8)
                                 )
                             }
                         }
@@ -851,6 +837,23 @@ fun CitizenScreen(
         DocumentChecklistDialog(
             scheme = scheme,
             onDismiss = { selectedSchemeForDocs = null }
+        )
+    }
+
+    // Comprehensive Scheme Detail Dialog
+    selectedSchemeForDetail?.let { scheme ->
+        val evaluation = viewModel.evaluateScheme(scheme)
+        val isSaved = savedIds.contains(scheme.id)
+        SchemeDetailDialog(
+            scheme = scheme,
+            evaluation = evaluation,
+            isSaved = isSaved,
+            onSaveToggle = { viewModel.toggleSaveScheme(scheme) },
+            onApplyScheme = { appliedScheme ->
+                viewModel.createNewApplication(appliedScheme, "", "Citizen Online")
+                activeTab = CitizenTab.APPLICATIONS
+            },
+            onDismiss = { selectedSchemeForDetail = null }
         )
     }
 

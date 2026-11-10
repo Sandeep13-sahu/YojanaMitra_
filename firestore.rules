@@ -75,6 +75,7 @@ service cloud.firestore {
              (!('hasBplRationCard' in data) || data.hasBplRationCard == null || data.hasBplRationCard is bool) &&
              data.consentGiven is bool &&
              (!('operatorId' in data) || data.operatorId == null || (data.operatorId is string && data.operatorId.size() <= 128)) &&
+             (!('photoUrl' in data) || data.photoUrl == null || (data.photoUrl is string && data.photoUrl.size() <= 1000)) &&
              data.createdAt is timestamp && data.createdAt <= request.time &&
              data.updatedAt is timestamp;
     }

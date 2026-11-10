@@ -107,6 +107,7 @@ data class CitizenProfile(
     val hasBplRationCard: Boolean = false,
     val consentGiven: Boolean = true,
     val operatorId: String? = null,
+    val photoUrl: String? = null,
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null
 )

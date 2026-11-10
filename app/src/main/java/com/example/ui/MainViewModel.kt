@@ -26,9 +26,14 @@ import com.example.domain.engine.EligibilityEngine
 import com.example.domain.engine.NationalJurisdictionData
 import com.example.domain.engine.NationalScannerEngine
 import com.example.domain.engine.NationalCoverageStats
+import com.example.data.local.AppDatabase
+import com.example.data.local.SchemeEntity
 import com.example.service.SpeechManager
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
+import com.google.firebase.auth.userProfileChangeRequest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +41,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+
+enum class AuthState {
+    CHECKING,
+    UNAUTHENTICATED,
+    AUTHENTICATED
+}
 
 enum class WorkspaceView {
     CITIZEN,
@@ -49,6 +61,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = YojanaRepository(application)
     val speechManager = SpeechManager(application)
+    private val appDb = AppDatabase.getDatabase(application)
+    private val schemeDao = appDb.schemeDao()
+
+    // Authentication & Session State
+    private val _authState = MutableStateFlow(
+        if (Firebase.auth.currentUser != null) AuthState.AUTHENTICATED else AuthState.CHECKING
+    )
+    val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    // Citizen Profile Screen View State
+    private val _isProfileViewOpen = MutableStateFlow(false)
+    val isProfileViewOpen: StateFlow<Boolean> = _isProfileViewOpen.asStateFlow()
 
     // Current Active Workspace
     private val _currentWorkspace = MutableStateFlow(WorkspaceView.CITIZEN)
@@ -354,18 +378,169 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val voiceMatchedSchemes: StateFlow<List<Scheme>> = _voiceMatchedSchemes.asStateFlow()
 
     init {
-        // Observe cloud profile if user signed in
+        // 1. Initialize and cache schemes into Room database for offline-first resilience
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val entities = SchemeData.verifiedSchemes.map { s ->
+                    SchemeEntity(
+                        id = s.id,
+                        schemeName = s.schemeName,
+                        schemeNameHindi = s.schemeNameHindi,
+                        category = s.category,
+                        department = s.department,
+                        governmentLevel = s.governmentLevel,
+                        applicableState = s.applicableState,
+                        shortDescription = s.shortDescription,
+                        shortDescriptionHindi = s.shortDescriptionHindi,
+                        benefitSummary = s.benefitSummary,
+                        benefitSummaryHindi = s.benefitSummaryHindi,
+                        officialLink = s.officialLink,
+                        sourceReference = s.sourceReference,
+                        lastVerifiedDate = s.lastVerifiedDate,
+                        version = s.version,
+                        isPublished = s.isPublished
+                    )
+                }
+                schemeDao.insertSchemes(entities)
+            } catch (e: Exception) {
+                // Room offline cache initialized
+            }
+        }
+
+        // 2. Auth state listener for robust session persistence
+        val authListener = FirebaseAuth.AuthStateListener { auth ->
+            val user = auth.currentUser
+            if (user != null) {
+                _authState.value = AuthState.AUTHENTICATED
+                observeUserCloudProfile(user.uid)
+            } else {
+                _authState.value = AuthState.UNAUTHENTICATED
+            }
+        }
+        Firebase.auth.addAuthStateListener(authListener)
+    }
+
+    // --- Profile Screen Navigation ---
+
+    fun openProfileView() {
+        _isProfileViewOpen.value = true
+    }
+
+    fun closeProfileView() {
+        _isProfileViewOpen.value = false
+    }
+
+    // --- Authentication & Session Management ---
+
+    fun onAuthCompleted() {
+        _authState.value = AuthState.AUTHENTICATED
+        val uid = Firebase.auth.currentUser?.uid
+        if (uid != null) {
+            observeUserCloudProfile(uid)
+        }
+    }
+
+    fun loginWithEmail(email: String, password: String, onResult: (Result<Unit>) -> Unit) {
         viewModelScope.launch {
             try {
-                if (Firebase.auth.currentUser != null) {
-                    repository.observeCitizenProfile().collect { cloudProfile ->
-                        if (cloudProfile != null) {
-                            _profile.value = cloudProfile
+                Firebase.auth.signInWithEmailAndPassword(email.trim(), password).await()
+                _authState.value = AuthState.AUTHENTICATED
+                val uid = Firebase.auth.currentUser?.uid
+                if (uid != null) {
+                    observeUserCloudProfile(uid)
+                }
+                onResult(Result.success(Unit))
+            } catch (e: Exception) {
+                onResult(Result.failure(e))
+            }
+        }
+    }
+
+    fun registerWithEmail(
+        email: String,
+        password: String,
+        fullName: String,
+        phoneNumber: String,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val authResult = Firebase.auth.createUserWithEmailAndPassword(email.trim(), password).await()
+                val user = authResult.user
+                if (user != null) {
+                    val profileUpdate = userProfileChangeRequest {
+                        displayName = fullName
+                    }
+                    user.updateProfile(profileUpdate).await()
+
+                    // Initialize citizen profile in Firestore & local state
+                    val newProfile = CitizenProfile(
+                        userId = user.uid,
+                        fullName = fullName,
+                        phoneNumber = phoneNumber,
+                        preferredLanguage = _currentLanguage.value.code,
+                        state = "Bihar",
+                        district = "Patna",
+                        block = "Phulwari Sharif",
+                        panchayat = "Nohsa",
+                        village = "Nohsa"
+                    )
+                    _profile.value = newProfile
+                    repository.saveCitizenProfile(newProfile)
+                }
+                _authState.value = AuthState.AUTHENTICATED
+                onResult(Result.success(Unit))
+            } catch (e: Exception) {
+                onResult(Result.failure(e))
+            }
+        }
+    }
+
+    fun sendPasswordReset(email: String, onResult: (Result<Unit>) -> Unit) {
+        viewModelScope.launch {
+            try {
+                Firebase.auth.sendPasswordResetEmail(email.trim()).await()
+                onResult(Result.success(Unit))
+            } catch (e: Exception) {
+                onResult(Result.failure(e))
+            }
+        }
+    }
+
+    fun signOutCitizen() {
+        Firebase.auth.signOut()
+        _authState.value = AuthState.UNAUTHENTICATED
+        _isProfileViewOpen.value = false
+        _currentWorkspace.value = WorkspaceView.CITIZEN
+    }
+
+    fun updateProfilePhoto(photoUrl: String) {
+        val current = _profile.value ?: return
+        val updated = current.copy(photoUrl = photoUrl)
+        updateProfile(updated)
+    }
+
+    private fun observeUserCloudProfile(uid: String) {
+        viewModelScope.launch {
+            try {
+                repository.observeCitizenProfile(uid).collect { cloudProfile ->
+                    if (cloudProfile != null) {
+                        _profile.value = cloudProfile
+                    } else {
+                        // If no cloud profile exists, populate from Firebase Auth User
+                        val fbUser = Firebase.auth.currentUser
+                        if (fbUser != null && _profile.value?.userId != fbUser.uid) {
+                            _profile.value = CitizenProfile(
+                                userId = fbUser.uid,
+                                fullName = fbUser.displayName.orEmpty().ifBlank { "सत्यापित नागरिक" },
+                                phoneNumber = fbUser.phoneNumber.orEmpty(),
+                                photoUrl = fbUser.photoUrl?.toString()
+                            )
                         }
                     }
                 }
             } catch (e: Exception) {
-                // Keep local default profile
+                // local fallback remains
             }
         }
     }
